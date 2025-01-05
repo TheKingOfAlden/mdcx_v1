@@ -1086,22 +1086,97 @@ def newtdisk_creat_symlink(copy_flag, netdisk_path="", local_path=""):
         signal.reset_buttons_status.emit()
 
 
-def movie_lists(escape_folder_list, movie_type, movie_path):
+def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
+    # 从配置中获取媒体类型
+    media_extensions = set(config.media_type.lower().split('|'))
+
+    movie_list = []
+    current_path = []
+    root_found = False
+
+    try:
+        # 读取目录树文件
+        with open(tree_file_path, 'r', encoding='utf-16 LE') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # 提取当前行的文件夹/文件名
+                name = line.split('|-')[-1].strip()
+
+                # 如果还没找到根目录且当前行不包含|-，说明这是根目录
+                if not root_found and '|-' not in line:
+                    root_found = True
+                    continue
+
+                # 计算当前行的深度(根据'|-'或'| |-'的数量)
+                depth = 0
+                if '|-' in line:
+                    depth = (line.index('|-')) // 2
+
+                # 根据深度更新当前路径
+                while len(current_path) > depth:
+                    current_path.pop()
+                current_path.append(name)
+
+                # 检查是否为视频文件
+                if any(name.lower().endswith(ext) for ext in media_extensions):
+                    # 构建完整文件路径，添加前缀
+                    full_path = os.path.join(prefix, *current_path) if prefix else os.path.join(*current_path)
+                    movie_list.append(full_path)
+
+    except Exception as e:
+        signal.show_log_text(f'Error reading directory tree file: {str(e)}')
+        signal.show_traceback_log(traceback.format_exc())
+
+    return movie_list
+
+
+def movie_lists(escape_folder_list, movie_type, movie_path, tree_file=None):
     start_time = time.time()
     total = []
-    file_type = movie_type.split("|")
-    skip_list = ["skip", ".skip", ".ignore"]
-    not_skip_success = bool("skip_success_file" not in config.no_escape)
+    file_type = movie_type.split('|')
+    skip_list = ['skip', '.skip', '.ignore']
+    not_skip_success = bool('skip_success_file' not in config.no_escape)
     i = 100
     skip = 0
     skip_repeat_softlink = 0
     signal.show_traceback_log("🔎 遍历待刮削目录....")
-    for root, dirs, files in os.walk(movie_path):
-        # 文件夹是否在排除目录
-        root = os.path.join(root, "").replace("\\", "/")
-        if "behind the scenes" in root or root in escape_folder_list:
-            dirs[:] = []  # 忽略当前文件夹子目录
-            continue
+
+    # 如果提供了目录树文件，则从目录树解析
+    if tree_file:
+        signal.show_log_text(f' 📄 Reading from directory tree file: {tree_file}')
+        movie_list = parse_directory_tree(tree_file)
+
+        # 处理解析出的路径列表
+        for path in movie_list:
+            full_path = path.replace('根目录', "/H/".rstrip('/'), 1)
+            if not_skip_success and full_path not in Flags.success_list:
+                total.append(convert_path(full_path))
+            else:
+                skip += 1
+
+            # 显示进度
+            found_count = len(total)
+            if found_count >= i:
+                i = found_count + 100
+                signal.show_traceback_log(f"✅ Found ({found_count})! "
+                                          f"Skip successfully scraped ({skip})! "
+                                          f"({get_used_time(start_time)}s)... Still searching, please wait... \u3000")
+                signal.show_log_text(f'    {get_current_time()} Found ({found_count})! '
+                                     f'Skip successfully scraped ({skip})! '
+                                     f'({get_used_time(start_time)}s)... Still searching, please wait... \u3000')
+
+    # 否则遍历文件系统
+    else:
+        for root, dirs, files in os.walk(movie_path):
+            # 原有的文件系统遍历逻辑...
+            # 文件夹是否在排除目录
+            root = os.path.join(root, '').replace('\\', '/')
+            if 'behind the scenes' in root or root in escape_folder_list:
+                dirs[:] = []  # 忽略当前文件夹子目录
+                continue
 
         # 文件夹是否存在跳过文件
         for skip_key in skip_list:
@@ -1114,11 +1189,11 @@ def movie_lists(escape_folder_list, movie_type, movie_path):
                 file_name, file_type_current = os.path.splitext(f)
 
                 # 跳过隐藏文件、预告片、主题视频
-                if re.search(r"^\..+", file_name):
+                if re.search(r'^\..+', file_name):
                     continue
-                if "trailer." in f or "trailers." in f:
+                if 'trailer.' in f or 'trailers.' in f:
                     continue
-                if "theme_video." in f:
+                if 'theme_video.' in f:
                     continue
 
                 # 判断清理文件
@@ -1126,9 +1201,9 @@ def movie_lists(escape_folder_list, movie_type, movie_path):
                 if _need_clean(path, f, file_type_current):
                     result, error_info = delete_file(path)
                     if result:
-                        signal.show_log_text(" 🗑 Clean: %s " % path)
+                        signal.show_log_text(' 🗑 Clean: %s ' % path)
                     else:
-                        signal.show_log_text(" 🗑 Clean error: %s " % error_info)
+                        signal.show_log_text(' 🗑 Clean error: %s ' % error_info)
                     continue
 
                 # 添加文件
@@ -1137,12 +1212,12 @@ def movie_lists(escape_folder_list, movie_type, movie_path):
                     if os.path.islink(path):
                         real_path = read_link(path)
                         # 清理失效的软链接文件
-                        if "check_symlink" in config.no_escape and not os.path.exists(real_path):
+                        if 'check_symlink' in config.no_escape and not os.path.exists(real_path):
                             result, error_info = delete_file(path)
                             if result:
-                                signal.show_log_text(" 🗑 Clean dead link: %s " % path)
+                                signal.show_log_text(' 🗑 Clean dead link: %s ' % path)
                             else:
-                                signal.show_log_text(" 🗑 Clean dead link error: %s " % error_info)
+                                signal.show_log_text(' 🗑 Clean dead link error: %s ' % error_info)
                             continue
                         if real_path in temp_total:
                             skip_repeat_softlink += 1
@@ -1168,28 +1243,20 @@ def movie_lists(escape_folder_list, movie_type, movie_path):
         found_count = len(total)
         if found_count >= i:
             i = found_count + 100
-            signal.show_traceback_log(
-                f"✅ Found ({found_count})! "
-                f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
-                f"({get_used_time(start_time)}s)... Still searching, please wait... \u3000"
-            )
-            signal.show_log_text(
-                f"    {get_current_time()} Found ({found_count})! "
-                f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
-                f"({get_used_time(start_time)}s)... Still searching, please wait... \u3000"
-            )
+            signal.show_traceback_log(f"✅ Found ({found_count})! "
+                                      f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
+                                      f"({get_used_time(start_time)}s)... Still searching, please wait... \u3000")
+            signal.show_log_text(f'    {get_current_time()} Found ({found_count})! '
+                                 f'Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! '
+                                 f'({get_used_time(start_time)}s)... Still searching, please wait... \u3000')
 
     total.sort()
-    signal.show_traceback_log(
-        f"🎉 Done!!! Found ({len(total)})! "
-        f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
-        f"({get_used_time(start_time)}s) \u3000"
-    )
-    signal.show_log_text(
-        f"    Done!!! Found ({len(total)})! "
-        f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
-        f"({get_used_time(start_time)}s) \u3000"
-    )
+    signal.show_traceback_log(f"🎉 Done!!! Found ({len(total)})! "
+                              f"Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! "
+                              f"({get_used_time(start_time)}s) \u3000")
+    signal.show_log_text(f'    Done!!! Found ({len(total)})! '
+                         f'Skip successfully scraped ({skip}) repeat softlink ({skip_repeat_softlink})! '
+                         f'({get_used_time(start_time)}s) \u3000')
     return total
 
 
