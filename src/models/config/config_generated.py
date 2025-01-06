@@ -25,6 +25,8 @@ class GeneratedConfig:
     sub_type = r".smi|.srt|.idx|.sub|.sup|.psb|.ssa|.ass|.usf|.xss|.ssf|.rt|.lrc|.sbv|.vtt|.ttml"
     scrape_softlink_path = r""
     auto_link = 0
+    tree_file = r""
+    tree_file_prefix = r""
 
     # escape
     folders = r"JAV_output,examples"
@@ -245,6 +247,8 @@ media_type = {media_type}
 sub_type = {sub_type}
 scrape_softlink_path = {scrape_softlink_path}
 auto_link = {auto_link}
+tree_file = {tree_file}
+tree_file_prefix = {tree_file_prefix}
 
 [escape]
 folders = {folders}

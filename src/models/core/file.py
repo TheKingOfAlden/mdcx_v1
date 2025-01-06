@@ -1146,12 +1146,18 @@ def movie_lists(escape_folder_list, movie_type, movie_path, tree_file=None):
 
     # 如果提供了目录树文件，则从目录树解析
     if tree_file:
-        signal.show_log_text(f' 📄 Reading from directory tree file: {tree_file}')
+        signal.show_log_text(f' 📄 读取115目录树文件: {tree_file}')
+        # 从配置中获取前缀
+        prefix = config.tree_file_prefix.strip() if hasattr(config, 'tree_file_prefix') else ""
         movie_list = parse_directory_tree(tree_file)
 
         # 处理解析出的路径列表
         for path in movie_list:
-            full_path = path.replace('根目录', "/H/".rstrip('/'), 1)
+            full_path = os.path.join(prefix, path) if prefix else path
+            if not os.path.exists(full_path):
+                signal.show_log_text(f'    {get_current_time()} 读取115目录树文件: {full_path} 不存在! 跳过...')
+                continue
+
             if not_skip_success and full_path not in Flags.success_list:
                 total.append(convert_path(full_path))
             else:
@@ -1161,10 +1167,10 @@ def movie_lists(escape_folder_list, movie_type, movie_path, tree_file=None):
             found_count = len(total)
             if found_count >= i:
                 i = found_count + 100
-                signal.show_traceback_log(f"✅ Found ({found_count})! "
+                signal.show_traceback_log(f"✅ 读取115目录树文件 Found ({found_count})! "
                                           f"Skip successfully scraped ({skip})! "
                                           f"({get_used_time(start_time)}s)... Still searching, please wait... \u3000")
-                signal.show_log_text(f'    {get_current_time()} Found ({found_count})! '
+                signal.show_log_text(f'    {get_current_time()} 读取115目录树文件 Found ({found_count})! '
                                      f'Skip successfully scraped ({skip})! '
                                      f'({get_used_time(start_time)}s)... Still searching, please wait... \u3000')
 
@@ -1349,7 +1355,7 @@ def get_file_info(file_path, copy_sub=True):
             file_name_cd = file_name_cd.replace(".", "-")
         file_name_cd = file_name_cd.lower() + "."  # .作为结尾
 
-        # 获取分集(排除‘番号-C’和‘番号C’作为字幕标识的情况)
+        # 获取分集(排除'番号-C'和'番号C'作为字幕标识的情况)
         # if '-C' in config.cnword_char:
         #     file_name_cd = file_name_cd.replace('-c.', '.')
         # else:
@@ -1649,8 +1655,11 @@ def get_movie_list(file_mode: FileMode, movie_path, escape_folder_list):
                 escape_folder_list = []
             try:
                 movie_list = movie_lists(
-                    escape_folder_list, config.media_type, movie_path
-                )  # 获取所有需要刮削的影片列表
+                    escape_folder_list, 
+                    config.media_type, 
+                    movie_path,
+                    config.tree_file  # 从config中获取tree_file参数
+                )
             except:
                 signal.show_traceback_log(traceback.format_exc())
                 signal.show_log_text(traceback.format_exc())

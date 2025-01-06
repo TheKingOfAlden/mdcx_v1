@@ -3,6 +3,9 @@ import os
 import platform
 import sys
 
+# 添加 src 目录到 Python 路径
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+
 import urllib3  # yapf: disable # NOQA: E402
 from PIL import ImageFile
 from PyQt5.QtCore import QCoreApplication, Qt

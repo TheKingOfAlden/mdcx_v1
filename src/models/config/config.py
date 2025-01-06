@@ -18,6 +18,8 @@ class MDCxConfig(GeneratedConfig, ManualConfig):
         self.file = None
         self.folder = None
         self._path = None
+        self.tree_file = ""
+        self.tree_file_prefix = ""
         self._get_platform_info()
         self.read_config()
         self.youdaokey = "Ygy_4c=r#e#4EX^NUGUc5"
@@ -103,6 +105,8 @@ media_type = {self.media_type}
 sub_type = {self.sub_type}
 scrape_softlink_path = {self.scrape_softlink_path}
 auto_link = {self.auto_link}
+tree_file = {self.tree_file}
+tree_file_prefix = {self.tree_file_prefix}
 
 [escape]
 folders = {self.folders}

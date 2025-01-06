@@ -1009,6 +1009,10 @@ def load_config(self):
             self.Ui.radioButton_top_right_mosaic.setChecked(True)
         # endregion
 
+        # 加载115目录树文件和前缀配置
+        self.Ui.lineEdit_tree_file.setText(config.tree_file)
+        self.Ui.lineEdit_tree_file_prefix.setText(config.tree_file_prefix)
+
         # region network
         proxy_type = config.type  # 代理类型
         if proxy_type == "no":

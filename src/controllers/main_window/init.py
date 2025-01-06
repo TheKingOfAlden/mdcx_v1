@@ -1,9 +1,16 @@
 import traceback
 import webbrowser
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QMenu, QSystemTrayIcon, QTreeWidgetItem
+from PyQt5.QtWidgets import (
+    QAction,
+    QLineEdit,
+    QLabel,
+    QMenu,
+    QSystemTrayIcon,
+    QTreeWidgetItem,
+)
 
 from models.config.config import config
 from models.config.resources import resources

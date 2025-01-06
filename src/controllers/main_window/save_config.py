@@ -17,6 +17,8 @@ from models.tools.actress_db import ActressDB
 
 def save_config(self):
     # region media & escape
+    config.tree_file = self.Ui.lineEdit_tree_file.text()
+    config.tree_file_prefix = self.Ui.lineEdit_tree_file_prefix.text()
     config.media_path = self.Ui.lineEdit_movie_path.text()  # 待刮削目录
     config.softlink_path = self.Ui.lineEdit_movie_softlink_path.text()  # 软链接目录目录
     config.success_output_folder = self.Ui.lineEdit_success.text()  # 成功输出目录
@@ -904,6 +906,10 @@ def save_config(self):
     else:  # 显示窗口标题栏
         config.window_title = "show"
     # endregion
+
+    # 保存115目录树文件和前缀配置
+    config.tree_file = self.Ui.lineEdit_tree_file.text()
+    config.tree_file_prefix = self.Ui.lineEdit_tree_file_prefix.text()
 
     if self.Ui.checkBox_create_link.isChecked():
         config.auto_link = 1
