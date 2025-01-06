@@ -1126,10 +1126,11 @@ def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
 
                 # 检查是否为视频文件
                 if any(name.lower().endswith(ext) for ext in media_extensions):
-                    # 构建完整文件路径，添加前缀，并截取第一个/后的路径
+                    # 构建完整文件路径，添加前缀，并截取第一个分隔符后的路径
                     full_path = os.path.join(prefix, *current_path) if prefix else os.path.join(*current_path)
+                    # 统一转换为 / 分隔符
+                    full_path = full_path.replace('\\', '/')
                     full_path = full_path.split('/', 1)[1] if '/' in full_path else full_path
-                    movie_list.append(full_path)
 
     except Exception as e:
         signal.show_log_text(f'Error reading directory tree file: {str(e)}')
