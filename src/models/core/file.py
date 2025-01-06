@@ -1089,10 +1089,8 @@ def newtdisk_creat_symlink(copy_flag, netdisk_path="", local_path=""):
 def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
     # 从配置中获取媒体类型
     media_extensions = set(config.media_type.lower().split('|'))
-
     movie_list = []
     current_path = []
-    root_found = False
 
     try:
         # 读取目录树文件
@@ -1102,28 +1100,35 @@ def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
                 if not line:
                     continue
 
-                # 提取当前行的文件夹/文件名
-                name = line.split('|-')[-1].strip()
-
-                # 如果还没找到根目录且当前行不包含|-，说明这是根目录
-                if not root_found and '|-' not in line:
-                    root_found = True
+                # 跳过根目录行
+                if '|' not in line:
                     continue
 
-                # 计算当前行的深度(根据'|-'或'| |-'的数量)
+                # 提取当前行的文件夹/文件名并清理
+                name = line.split('|-')[-1].strip()
+                if name.startswith('-'):
+                    name = name[1:].strip()
+
+                # 计算深度（通过计算前导的 "| " 数量）
                 depth = 0
-                if '|-' in line:
-                    depth = (line.index('|-')) // 2
+                line_start = line.split('|-')[0]
+                if '| ' in line_start:
+                    depth = line_start.count('| ')
 
                 # 根据深度更新当前路径
                 while len(current_path) > depth:
                     current_path.pop()
-                current_path.append(name)
+
+                if len(current_path) <= depth:
+                    current_path.append(name)
+                else:
+                    current_path[depth] = name
 
                 # 检查是否为视频文件
                 if any(name.lower().endswith(ext) for ext in media_extensions):
-                    # 构建完整文件路径，添加前缀
+                    # 构建完整文件路径，添加前缀，并截取第一个/后的路径
                     full_path = os.path.join(prefix, *current_path) if prefix else os.path.join(*current_path)
+                    full_path = full_path.split('/', 1)[1] if '/' in full_path else full_path
                     movie_list.append(full_path)
 
     except Exception as e:
@@ -1655,8 +1660,8 @@ def get_movie_list(file_mode: FileMode, movie_path, escape_folder_list):
                 escape_folder_list = []
             try:
                 movie_list = movie_lists(
-                    escape_folder_list, 
-                    config.media_type, 
+                    escape_folder_list,
+                    config.media_type,
                     movie_path,
                     config.tree_file  # 从config中获取tree_file参数
                 )
