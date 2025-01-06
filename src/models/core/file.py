@@ -1131,6 +1131,7 @@ def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
                     # 统一转换为 / 分隔符
                     full_path = full_path.replace('\\', '/')
                     full_path = full_path.split('/', 1)[1] if '/' in full_path else full_path
+                    movie_list.append(full_path)
 
     except Exception as e:
         signal.show_log_text(f'Error reading directory tree file: {str(e)}')
