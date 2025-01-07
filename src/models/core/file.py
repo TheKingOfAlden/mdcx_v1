@@ -1086,11 +1086,12 @@ def newtdisk_creat_symlink(copy_flag, netdisk_path="", local_path=""):
         signal.reset_buttons_status.emit()
 
 
-def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
+def parse_directory_tree(tree_file_path: str) -> list:
     # 从配置中获取媒体类型
     media_extensions = set(config.media_type.lower().split('|'))
     movie_list = []
     current_path = []
+    prefix_pattern = re.compile(r'^(\| )+')
 
     try:
         # 读取目录树文件
@@ -1105,32 +1106,32 @@ def parse_directory_tree(tree_file_path: str, prefix: str = "") -> list:
                     continue
 
                 # 提取当前行的文件夹/文件名并清理
-                name = line.split('|-')[-1].strip()
+                parts = line.split('|-')
+                if len(parts) < 2:
+                    continue
+                name = parts[-1].strip()
                 if name.startswith('-'):
                     name = name[1:].strip()
 
-                # 计算深度（通过计算前导的 "| " 数量）
-                depth = 0
-                line_start = line.split('|-')[0]
-                if '| ' in line_start:
-                    depth = line_start.count('| ')
+                # 计算深度（通过匹配前导的 "| " 数量）
+                match = prefix_pattern.match(line)
+                if match:
+                    depth = len(match.group(0)) // 2  # 每个“| ”占两个字符
+                else:
+                    depth = 0
 
                 # 根据深度更新当前路径
                 while len(current_path) > depth:
                     current_path.pop()
-
-                if len(current_path) <= depth:
+                if len(current_path) < depth:
                     current_path.append(name)
                 else:
-                    current_path[depth] = name
+                    current_path[depth-1] = name
 
                 # 检查是否为视频文件
                 if any(name.lower().endswith(ext) for ext in media_extensions):
-                    # 构建完整文件路径，添加前缀，并截取第一个分隔符后的路径
-                    full_path = os.path.join(prefix, *current_path) if prefix else os.path.join(*current_path)
-                    # 统一转换为 / 分隔符
-                    full_path = full_path.replace('\\', '/')
-                    full_path = full_path.split('/', 1)[1] if '/' in full_path else full_path
+                    # 构建完整文件路径，添加前缀
+                    full_path = os.path.join(*current_path)
                     movie_list.append(full_path)
 
     except Exception as e:
