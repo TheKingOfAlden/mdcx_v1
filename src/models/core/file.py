@@ -1158,13 +1158,10 @@ def movie_lists(escape_folder_list, movie_type, movie_path, tree_file=None):
         # 从配置中获取前缀
         prefix = config.tree_file_prefix.strip() if hasattr(config, 'tree_file_prefix') else ""
         movie_list = parse_directory_tree(tree_file)
-
+        signal.show_log_text(f'    {get_current_time()} 读取115目录树文件完成!总文件数: {len(movie_list)}')
         # 处理解析出的路径列表
         for path in movie_list:
             full_path = os.path.join(prefix, path) if prefix else path
-            if not os.path.exists(full_path):
-                signal.show_log_text(f'    {get_current_time()} 读取115目录树文件: {full_path} 不存在! 跳过...')
-                continue
 
             if not_skip_success and full_path not in Flags.success_list:
                 total.append(convert_path(full_path))
